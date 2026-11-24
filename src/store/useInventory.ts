@@ -251,7 +251,11 @@ export function useInventory() {
   }, []);
 
   useEffect(() => {
-    fetchAll();
+    let active = true;
+
+    void Promise.resolve().then(() => {
+      if (active) void fetchAll();
+    });
 
     const channel = supabase
       .channel("cafe-inventory-realtime")
@@ -273,6 +277,7 @@ export function useInventory() {
       .subscribe();
 
     return () => {
+      active = false;
       supabase.removeChannel(channel);
     };
   }, [fetchAll]);
