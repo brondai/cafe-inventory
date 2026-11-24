@@ -190,6 +190,7 @@ function mapMovement(row: Record<string, unknown>): StockMovement {
     previousStock: Number(row.previous_stock ?? 0),
     newStock: Number(row.new_stock ?? 0),
     note: row.note ? String(row.note) : undefined,
+    updatedBy: row.updated_by ? String(row.updated_by) : undefined,
     createdAt: String(row.created_at ?? new Date().toISOString()),
   };
 }
@@ -292,6 +293,11 @@ export function useInventory() {
     const newStock = Math.max(0, previousStock + delta);
     const actualDelta = newStock - previousStock;
 
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const updatedBy = user?.email ?? "Staff";
+
     const log: StockMovement = {
       id: `mov-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       itemId: target.id,
@@ -301,6 +307,7 @@ export function useInventory() {
       newStock,
       note,
       createdAt: now,
+      updatedBy,
     };
 
     // Optimistic UI update
@@ -311,7 +318,7 @@ export function useInventory() {
     );
     setMovements((prev) => [log, ...prev].slice(0, 200));
 
-    await Promise.all([
+    const [itemResult, movementResult] = await Promise.all([
       supabase
         .from("inventory_items")
         .update({ current_stock: newStock, updated_at: now })
@@ -324,9 +331,18 @@ export function useInventory() {
         previous_stock: log.previousStock,
         new_stock: log.newStock,
         note: log.note ?? null,
+        updated_by: log.updatedBy ?? null,
         created_at: log.createdAt,
       }),
     ]);
+
+    if (itemResult.error || movementResult.error) {
+      console.error("Supabase stock update error:", {
+        item: itemResult.error,
+        movement: movementResult.error,
+      });
+      await fetchAll();
+    }
   };
 
   const addItem = async (data: Omit<InventoryItem, "id" | "updatedAt">) => {

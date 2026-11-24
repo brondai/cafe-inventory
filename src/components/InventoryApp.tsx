@@ -280,6 +280,7 @@ export default function InventoryApp() {
                     <p className="font-medium">{m.itemName}</p>
                     <p className="text-xs text-slate-500">
                       {new Date(m.createdAt).toLocaleString()}
+                      {m.updatedBy ? ` • by ${m.updatedBy}` : ""}
                     </p>
                   </div>
                   <div className="text-right">
