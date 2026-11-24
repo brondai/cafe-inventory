@@ -23,3 +23,5 @@ export default defineConfig({
     }),
   ],
 });
+
+// supabase db: Cafe-Inventory@123
